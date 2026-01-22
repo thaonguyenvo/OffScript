@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results — Off Script</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="results-page">
+    <header class="results-header">
+        <h1><span class="off">Off</span><span class="script">Script</span></h1>
+        <div class="header-actions">
+            <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark Mode</button>
+            <button onclick="window.location.href='index.html'" class="btn-back">← Back</button>
+        </div>
+    </header>
+    
+    <div class="split-container">
+        <div class="panel panel-text">
+            <h2>Analysis</h2>
+            
+            <div class="stats-box">
+                <div class="stats-row">
+                    <span class="stats-label">Flatness Score</span>
+                    <span class="stats-value"><span id="flatness-value">—</span>/100</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Lexical Diversity</span>
+                    <span class="stats-value" id="diversity-value">—</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Sentence Variance</span>
+                    <span class="stats-value" id="variance-value">—</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">Burstiness</span>
+                    <span class="stats-value" id="burstiness-value">—</span>
+                </div>
+            </div>
+            
+            <div class="flatness-bar">
+                <div id="flatness-fill" class="bar-fill"></div>
+            </div>
+            <p class="bar-labels">
+                <span>Diverse</span>
+                <span>Flat</span>
+            </p>
+            
+            <div id="ai-patterns" style="margin: 32px 0; display: none;">
+                <h3>Detected Patterns</h3>
+                <ul id="pattern-list" style="margin: 12px 0 0 0; padding-left: 24px; font-size: 15px; color: var(--text-gray);"></ul>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="text-display">
+                <h3>Your Text with Highlighting</h3>
+                <div id="analyzed-text" class="text-content-highlighted"></div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="legend">
+                <div class="legend-title">Color Guide</div>
+                <div class="legend-item">
+                    <div class="legend-color legend-low"></div>
+                    <span>Very diverse (human-like)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-mid-low"></div>
+                    <span>Diverse</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-mid"></div>
+                    <span>Neutral</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-mid-high"></div>
+                    <span>Flat</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-high"></div>
+                    <span>Very flat (AI-like)</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel panel-terrain">
+            <div class="terrain-header">
+                <h2>Terrain Visualization</h2>
+                <div class="terrain-controls">
+                    <button onclick="toggleFullscreen()" class="btn-fullscreen" id="fullscreen-btn">⛶ Fullscreen</button>
+                </div>
+            </div>
+            
+            <div id="terrain-container"></div>
+            
+            <div class="controls-info">
+                <div class="controls-title">Navigation</div>
+                <p>Drag to rotate the terrain</p>
+                <p>Scroll to zoom in and out</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/analyze.js"></script>
+    <script src="js/terrain.js"></script>
+    <script src="js/controls.js"></script>
+    
+    <script>
+        let currentAnalysis = null;
+        let terrainData = null;
+        
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            const btn = document.querySelector('.theme-toggle');
+            btn.textContent = newTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+            
+            // Update Three.js scene background
+            if (scene) {
+                scene.background = new THREE.Color(newTheme === 'dark' ? 0x1a1a1a : 0xf8f8f8);
+            }
+        }
+        
+        window.addEventListener('load', async () => {
+            // Load saved theme
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const btn = document.querySelector('.theme-toggle');
+            if (btn) {
+                btn.textContent = savedTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+            }
+            
+            const text = sessionStorage.getItem('analyzedText');
+            
+            if (!text) {
+                alert('No text found. Redirecting to home page.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            currentAnalysis = analyzeText(text);
+            displayResults(currentAnalysis);
+            
+            terrainData = generateTerrainData(text);
+            initTerrain(terrainData);
+        });
+        
+        function displayResults(analysis) {
+            document.getElementById('flatness-value').textContent = analysis.flatness;
+            document.getElementById('diversity-value').textContent = (analysis.diversity * 100).toFixed(1) + '%';
+            document.getElementById('variance-value').textContent = analysis.variance.toFixed(2);
+            document.getElementById('burstiness-value').textContent = analysis.burstiness.toFixed(3);
+            
+            setTimeout(() => {
+                document.getElementById('flatness-fill').style.width = analysis.flatness + '%';
+            }, 100);
+            
+            if (analysis.aiPatterns && analysis.aiPatterns.patterns.length > 0) {
+                document.getElementById('ai-patterns').style.display = 'block';
+                document.getElementById('pattern-list').innerHTML = analysis.aiPatterns.patterns
+                    .map(p => `<li>${p}</li>`)
+                    .join('');
+            }
+            
+            displayHighlightedText(analysis);
+        }
+        
+        function displayHighlightedText(analysis) {
+            const container = document.getElementById('analyzed-text');
+            const sentences = getSentences(analysis.text);
+            
+            let html = '';
+            
+            sentences.forEach((sentence, i) => {
+                const score = analysis.sentenceScores[i] || 0.5;
+                const words = sentence.trim().split(/\s+/);
+                
+                words.forEach((word, j) => {
+                    // Color based on score - matching terrain and legend
+                    let bgColor, textColor;
+                    
+                    if (score > 0.7) {
+                        bgColor = '#007aff'; // Blue - Very diverse
+                        textColor = '#ffffff'; // White text
+                    } else if (score > 0.5) {
+                        bgColor = '#34c759'; // Green - Diverse
+                        textColor = '#ffffff'; // White text
+                    } else if (score > 0.35) {
+                        bgColor = '#ffcc00'; // Yellow - Neutral
+                        textColor = '#1a1a1a'; // Dark text
+                    } else if (score > 0.2) {
+                        bgColor = '#ff9500'; // Orange - Flat
+                        textColor = '#ffffff'; // White text
+                    } else {
+                        bgColor = '#ff3b30'; // Red - Very flat
+                        textColor = '#ffffff'; // White text
+                    }
+                    
+                    html += `<mark style="background-color: ${bgColor}; color: ${textColor};">${escapeHtml(word)}</mark>`;
+                    
+                    if (j < words.length - 1) {
+                        html += ' ';
+                    }
+                });
+                
+                html += '. ';
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function getSentences(text) {
+            return text.split(/[.!?]+/).filter(s => s.trim());
+        }
+        
+        function toggleFullscreen() {
+            const terrainPanel = document.querySelector('.panel-terrain');
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            const terrainContainer = document.getElementById('terrain-container');
+            
+            if (!terrainPanel.classList.contains('fullscreen')) {
+                terrainPanel.classList.add('fullscreen');
+                fullscreenBtn.innerHTML = '✕ Exit Fullscreen';
+                fullscreenBtn.style.background = 'var(--text-black)';
+                fullscreenBtn.style.color = 'var(--bg-light-gray)';
+                
+                // Resize to fullscreen
+                setTimeout(() => {
+                    if (renderer && camera) {
+                        const w = window.innerWidth - 40;
+                        const h = window.innerHeight - 120;
+                        camera.aspect = w / h;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(w, h);
+                    }
+                }, 10);
+            } else {
+                terrainPanel.classList.remove('fullscreen');
+                fullscreenBtn.innerHTML = '⛶ Fullscreen';
+                fullscreenBtn.style.background = '';
+                fullscreenBtn.style.color = '';
+                
+                // Resize back to normal
+                setTimeout(() => {
+                    if (renderer && camera && terrainContainer) {
+                        const w = terrainContainer.clientWidth;
+                        const h = 600;
+                        camera.aspect = w / h;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(w, h);
+                    }
+                }, 10);
+            }
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const terrainPanel = document.querySelector('.panel-terrain');
+                if (terrainPanel.classList.contains('fullscreen')) {
+                    toggleFullscreen();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

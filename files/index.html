@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Off Script : Linguistic Terrain Visualizer</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div>
+            <h1><span class="off">Off</span><span class="script">Script</span></h1>
+            <p class="version">Linguistic Terrain Visualizer v0.1</p>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark Mode</button>
+    </header>
+    
+    <section class="section-full">
+        <div class="section-content">
+            <label for="textInput">Paste your text</label>
+            <textarea 
+                id="textInput" 
+                placeholder="Start typing or paste text to analyze..."
+                spellcheck="false"
+            ></textarea>
+            
+            <button onclick="analyze()" class="btn-analyze">Analyze Text</button>
+            
+            <div class="examples">
+                <p>Try an example:</p>
+                <button onclick="loadExample('ai')" class="btn-example">AI-Generated Text</button>
+                <button onclick="loadExample('human')" class="btn-example">Human-Written Text</button>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Info Popup -->
+    <div id="info-backdrop" class="popup-backdrop"></div>
+    <div id="info-popup" class="popup-overlay">
+        <div class="popup-header">
+            <h2 class="popup-title">Off Script?</h2>
+            <button class="popup-close" onclick="hideInfo()">×</button>
+        </div>
+        <div class="popup-content">
+            <p>Off Script visualizes the linguistic diversity of text by measuring patterns, variance, and complexity through an interactive 3D terrain.</p>
+            
+            <p><strong>AI writing creates flat valleys.</strong><br>
+            <strong>Human writing creates mountain peaks.</strong></p>
+            
+            <h3>What it analyzes</h3>
+            <ul>
+                <li>Lexical diversity : how varied your vocabulary is</li>
+                <li>Sentence variance : structural variety in writing</li>
+                <li>Linguistic complexity : unique word patterns</li>
+                <li>AI-like patterns : repetitive or formulaic phrases</li>
+            </ul>
+            
+            <p><em>This is not an AI detector. It's a visualization tool that shows how diverse or repetitive text patterns are, rendering linguistic "flatness" as a 3D landscape.</em></p>
+            
+            <h3>Understanding the terrain</h3>
+            <p>Your text becomes a landscape where diverse, complex language creates peaks and repetitive, predictable patterns create valleys.</p>
+            
+            <p><strong>Color guide:</strong></p>
+            <ul>
+                <li><strong>Blue</strong> : Very diverse (tall peaks)</li>
+                <li><strong>Green</strong> : Diverse</li>
+                <li><strong>Yellow</strong> : Neutral</li>
+                <li><strong>Orange</strong> : Flat</li>
+                <li><strong>Red</strong> : Very flat (deep valleys)</li>
+            </ul>
+            
+            <p style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border-light);">Off Script was created in 2026 to visualize the linguistic patterns that emerge from AI-generated versus human writing.</p>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Off Script Project · 2026 · Open Source</p>
+    </footer>
+    
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            const btn = document.querySelector('.theme-toggle');
+            btn.textContent = newTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+        }
+        
+        // Load saved theme
+        window.addEventListener('load', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const btn = document.querySelector('.theme-toggle');
+            if (btn) {
+                btn.textContent = savedTheme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+            }
+        });
+        
+        const examples = {
+            ai: `It is important to note that effective communication in contemporary organizational contexts requires comprehensive understanding of stakeholder dynamics. In today's rapidly evolving digital landscape, leaders must leverage innovative technological solutions to optimize operational workflows and enhance productivity metrics. Furthermore, cross-functional collaboration facilitates knowledge sharing and enables teams to achieve strategic objectives more efficiently.
+
+Moreover, data-driven decision-making processes have become increasingly critical for sustainable competitive advantage. Organizations that prioritize evidence-based approaches demonstrate superior performance outcomes across multiple key performance indicators. Additionally, implementing robust analytical frameworks allows stakeholders to identify emerging trends and capitalize on market opportunities in a timely manner.
+
+It is worth mentioning that successful digital transformation initiatives require careful consideration of organizational culture and change management principles. Leaders should utilize comprehensive communication strategies to ensure all team members understand the rationale behind strategic decisions. Subsequently, fostering an environment of continuous learning and innovation becomes paramount for long-term organizational success.`,
+            
+            human: `So here's what I've been thinking about lately - why does everyone assume good communication has to sound like a business textbook? 
+
+I mean, yeah, you need to understand your audience. Obviously. But there's this weird thing that happens in companies where people start talking like robots. "Leverage synergies." "Optimize workflows." What does that even mean? Just say "work together better" or "make things faster." You know?
+
+And don't get me started on the data obsession. Sure, numbers matter. But I've seen people make terrible decisions with perfect spreadsheets. Because sometimes? The important stuff isn't measurable. Like trust. Or whether your team actually gives a damn about what they're doing. Try putting that in a KPI dashboard.
+
+The whole "digital transformation" thing cracks me up too. We act like technology solves everything. Spoiler: it doesn't. I worked at a place that spent millions on new software, but nobody bothered training people properly. Result? Everyone just worked around it and kept doing things the old way. Waste of money and time.
+
+Real change happens when people want to change. Not when some consultant shows up with a PowerPoint.`
+        };
+        
+        function loadExample(type) {
+            const textarea = document.getElementById('textInput');
+            textarea.value = examples[type];
+            textarea.style.opacity = '0';
+            setTimeout(() => {
+                textarea.style.transition = 'opacity 0.3s ease';
+                textarea.style.opacity = '1';
+            }, 10);
+        }
+        
+        function analyze() {
+            const text = document.getElementById('textInput').value;
+            if (!text.trim()) {
+                alert('Please enter some text first');
+                return;
+            }
+            sessionStorage.setItem('analyzedText', text);
+            window.location.href = 'results.html';
+        }
+        
+        function hideInfo() {
+            document.getElementById('info-popup').classList.add('hidden');
+            document.getElementById('info-backdrop').classList.add('hidden');
+        }
+        
+        // Make popup draggable
+        let isDraggingPopup = false;
+        let popupOffset = { x: 0, y: 0 };
+        
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('info-popup').classList.remove('hidden');
+                document.getElementById('info-backdrop').classList.remove('hidden');
+            }, 300);
+            
+            // Setup draggable popup
+            const popup = document.getElementById('info-popup');
+            const popupHeader = popup.querySelector('.popup-header');
+            
+            popupHeader.style.cursor = 'move';
+            
+            popupHeader.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('popup-close')) return;
+                isDraggingPopup = true;
+                const rect = popup.getBoundingClientRect();
+                popupOffset.x = e.clientX - rect.left;
+                popupOffset.y = e.clientY - rect.top;
+                popup.style.transition = 'none';
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDraggingPopup) return;
+                const popup = document.getElementById('info-popup');
+                popup.style.transform = 'none';
+                popup.style.right = 'auto';
+                popup.style.left = (e.clientX - popupOffset.x) + 'px';
+                popup.style.top = (e.clientY - popupOffset.y) + 'px';
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDraggingPopup) {
+                    isDraggingPopup = false;
+                    const popup = document.getElementById('info-popup');
+                    popup.style.transition = '';
+                }
+            });
+        });
+        
+        document.getElementById('textInput').addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                analyze();
+            }
+        });
+    </script>
+</body>
+</html>
